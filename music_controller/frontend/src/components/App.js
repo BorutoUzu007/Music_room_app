@@ -3,7 +3,7 @@ import { render } from "react-dom";
 import HomePage from "./HomePage";
 import RoomJoinPage from "./RoomJoinPage";
 import CreateRoomPage from "./CreateRoomPage";
-import { BrowserRouter as Router, Routes, Route, Link, Redirect} from "react-router-dom"
+import { BrowserRouter as Router, Routes, Route, Link, Redirect, Outlet} from "react-router-dom"
 
 
 export default class App extends Component{
@@ -13,15 +13,18 @@ export default class App extends Component{
     render() {
         return (
             <div>
+              
             <Router>
               <Routes>
               
 
-                <Route exact path="/home" element = {<HomePage />} />
+                <Route exact path="/" element = {<HomePage />} />
                   
                 
                 <Route path="/join" element={<RoomJoinPage />} />
                 <Route path="/create" element={<CreateRoomPage />} />
+
+                
                 
               </Routes>
             </Router>
