@@ -5,5 +5,6 @@ urlpatterns = [
     path('', index),
     path('home', index),
     path('join', index),
-    path('create', index)
+    path('create', index),
+    path('room/<uuid:roomCode>', index)
 ]

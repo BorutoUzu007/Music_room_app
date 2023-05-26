@@ -1,4 +1,4 @@
-import React, {Component} from "react";
+import React, {useState} from "react";
 import Button from "@mui/material/Button";
 import Grid from "@mui/material/Grid";
 import  Typography  from "@mui/material/Typography";
@@ -9,19 +9,50 @@ import  {Link}   from "react-router-dom";
 import  Radio  from "@mui/material/Radio";
 import  RadioGroup  from "@mui/material/RadioGroup";
 import  FormControlLabel  from "@mui/material/FormControlLabel";
+import { useNavigate } from "react-router-dom";
 
 
-export default class CreateRoomPage extends Component {
-    defaultVotes = 2;
-    constructor(props) {
-        super(props);
-        
+export const CreateRoomPage = () => {
+    const navigate = useNavigate();
+    const [defaultVotes, setdefaultVotes] = useState(2);
+    const [guestCanPause, setguestCanPause] = useState(true);
+    const [votesToSkip, setvotesToSkip] = useState(defaultVotes);
 
 
+    const handleVotesChanged = () => {
+        setvotesToSkip(event.target.value);
+    }
+
+    const handleGuestCanPauseChange = () => {
+        setguestCanPause(event.target.value);
+    }
+    
+
+    
+    const handleRoomButtonPressed = () => {
+        const cookieHeader = document.cookie
+        const csrfToken = cookieHeader.split('=')
+    
+
+        const requestOptions = {
+            method: 'POST',
+            headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken[1],   
+            },
+            body: JSON.stringify({
+            vote_to_skip: votesToSkip,
+            guest_can_pause: guestCanPause,
+            }),
+        };
+
+        fetch('/api/create-room', requestOptions)
+            .then((response) => response.json())
+            .then((data) => navigate("/room/" + data.code));
     }
 
 
-    render() {
+    
         return (
             <Grid container spacing={1} >
                 <Grid item xs={12} align="center" >
@@ -31,12 +62,12 @@ export default class CreateRoomPage extends Component {
                 </Grid>
                 <Grid item xs={12} align="center" >
                     <FormControl component="fieldset">
-                        <FormHelperText>
+                        <FormHelperText component='div'>
                             <div align="center">
                                 Guest Control of Playback State
                             </div>
                         </FormHelperText>
-                    <RadioGroup row defaultValue="true">
+                    <RadioGroup row defaultValue="true" onChange={handleGuestCanPauseChange}>
                         <FormControlLabel 
                             value="true" 
                             control={<Radio color="primary"/>}
@@ -57,12 +88,13 @@ export default class CreateRoomPage extends Component {
                         <TextField 
                             required={true} 
                             type="number" 
-                            defaultValue={this.defaultVotes} 
+                            onChange={handleVotesChanged}
+                            defaultValue={defaultVotes} 
                             inputProps={{
                                 min: 1,
                                 style: {textAlign: "center"}
                             }} />
-                        <FormHelperText>
+                        <FormHelperText component='div'>
                             <div align="center" >
                                 Votes to Skip a song
                             </div>
@@ -70,7 +102,7 @@ export default class CreateRoomPage extends Component {
                     </FormControl>
                 </Grid>
                 <Grid item xs={12} align="center" >
-                    <Button color= "primary" variant="contained">
+                    <Button color= "primary" variant="contained" onClick={handleRoomButtonPressed}>
                         Create a room
                     </Button>
                 </Grid>
@@ -83,4 +115,4 @@ export default class CreateRoomPage extends Component {
 
         );
     }
-}
+    export default CreateRoomPage;
