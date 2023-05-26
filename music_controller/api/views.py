@@ -31,7 +31,24 @@ class GetRoom(APIView):
             return Response({"Room not Found": "Invalid Code"}, status=status.HTTP_404_NOT_FOUND)
         return Response({"Bad Request": "No Code Given"}, status=status.HTTP_400_BAD_REQUEST)
 
+@method_decorator(csrf_exempt, name='dispatch')
+class JoinRoom(APIView):
 
+    lookup_url_kwarg = 'code'
+
+    def post(self, request, format=None):
+        if not self.request.session.exists(self.request.session.session_key):
+            self.request.session.create()
+        
+        code = request.data.get(self.lookup_url_kwarg)
+        if code is not None:
+            room_result = Room.objects.filter(code=code)
+            if len(room_result):
+                room = room_result[0]
+                self.request.session['room_code'] = code
+                return Response({'message': "Room Joined"}, status=status.HTTP_200_OK)
+            return Response({'Bad Request': 'Invalid room code'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'Bad Request': 'Invalid post data'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -53,11 +70,13 @@ class CreateRoomView(APIView):
                 room.guest_can_pause = guest_can_pause
                 room.vote_to_skip = vote_to_skip
                 room.save(update_fields=['guest_can_pause', 'vote_to_skip'])
-                return Response(RoomSerializer(room).data, status=status.HTTP_200_OK)
+                self.request.session['room_code'] = str(room.code)
+                return Response(RoomSerializer(room).data, status=status.HTTP_200_OK, content_type='application/json')
             else:
                 room = Room(host=host, guest_can_pause=guest_can_pause,
                             vote_to_skip=vote_to_skip)
                 room.save()
-                return Response(RoomSerializer(room).data, status=status.HTTP_201_CREATED)
+                self.request.session['room_code'] = str(room.code)
+                return Response(RoomSerializer(room).data, status=status.HTTP_201_CREATED,content_type='application/json')
 
-        return Response({'Bad Request': 'Invalid data...'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'Bad Request': 'Invalid data...'}, status=status.HTTP_400_BAD_REQUEST, content_type='application/json')
