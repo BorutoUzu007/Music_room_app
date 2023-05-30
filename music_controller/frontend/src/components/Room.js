@@ -1,75 +1,140 @@
-// import React, { Component } from 'react';
-// import { useParams } from 'react-router-dom';
-// export default class Room extends Component {
-//     constructor(props) {
-//         super(props);
-//         const { roomCode } = useParams();
-//         this.state = {
-//             voteToSkip : 2,
-//             guestCanPause: true,
-//             isHost: false,
-            
-//         };
-        
-        
-//     };
-
-
-//     render() {
-//         return (
-//             <div>
-//                 <h3>{roomCode}</h3>
-//                 <p>
-//                     Votes = {this.state.voteToSkip}
-//                 </p>
-//                 <p>
-//                     CanPause = {this.state.guestCanPause}
-//                 </p>
-//                 <p>
-//                     host = {this.state.isHost}
-//                 </p>
-//             </div>
-//         );
-//     }
-// }
-
 import React from 'react';
-import { useParams } from 'react-router-dom';
+import { Navigate, useParams, useNavigate } from 'react-router-dom';
+import {
+  Grid,Button,Typography
+} from '@mui/material'
+import CreateRoomPage from './CreateRoomPage';
 
-const Room = () => {
+
+const Room = ({clearRoomCode}) => {
   const { roomCode } = useParams();
+  const navigate = useNavigate();
 
-  const [state, setState] = React.useState({
-    voteToSkip: 2,
-    guestCanPause: true, 
-    isHost: false,
-  });
+  const [voteToSkip, setvoteToSkip] = React.useState(0);
+  const [guestCanPause, setguestCanPause] = React.useState(true);
+  const [isHost, setisHost] = React.useState(false);
+  const [showSettings, setshowSettings] = React.useState(false);
   
 
   const getRoomDetails = () => {
     fetch('/api/get-room' + '?code=' + roomCode)
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          clearRoomCode();
+          navigate('/');
+        }
+        return response.json();
+      })
       .then((data) => {
-        setState({
-          voteToSkip: data.vote_to_skip,
-          guestCanPause: data.guest_can_pause,
-          isHost: data.is_host,
-        });
+        setvoteToSkip(data.vote_to_skip);
+        setguestCanPause(data.guest_can_pause);
+        setisHost(data.is_host);
       });
+      
   };
 
   React.useEffect(() => {
     getRoomDetails();
   }, []);
 
-  return (
-    <div>
-      <h3>{roomCode}</h3>
-      <p>Votes = {state.voteToSkip.toString()}</p>
-      <p>CanPause = {state.guestCanPause.toString()}</p>
-      <p>Host = {state.isHost.toString()}</p>
-    </div>
-  );
+  const leaveButtonPressed = () => {
+    const cookieHeader = document.cookie
+    const csrfToken = cookieHeader.split('=')
+    const requestOptions = {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            'X-CSRFToken': csrfToken[1],
+        },
+        body: JSON.stringify({
+            code: roomCode
+        }),
+    }
+    fetch('/api/leave-room', requestOptions).then((_response) => {
+      
+        
+      clearRoomCode();
+      navigate('/');
+    });
+  }
+    
+  
+  const updateShowSettings = (value) => {
+    setshowSettings(value)
+    if (value == false) {
+      getRoomDetails();
+    }
+  }
+  const renderSettingsButton = () => {
+    return (
+      <Grid item xs={12} align='center' >
+        <Button variant='contained' color='primary' onClick={() => updateShowSettings(true)}>
+          Settings
+        </Button>
+      </Grid>
+    )
+  }
+
+  const renderSettings = () => {
+    
+    return (
+    <Grid container spacing={1}>
+      <Grid item xs={12} align='center'>
+      <CreateRoomPage 
+        upd = {true} 
+        vote = {voteToSkip} 
+        canPause = {guestCanPause} 
+        code = {roomCode}  
+        updateCallback = {null}
+        />
+      </Grid>
+      <Grid item xs={12} align='center'>
+      <Button variant='contained' color='primary' onClick={() => updateShowSettings(false)}>
+          Close
+        </Button>
+      </Grid>
+    </Grid>
+    );
+  }
+
+  if (showSettings) {
+    return (
+      renderSettings()
+    )
+  }
+  else
+    return (
+
+      <Grid container spacing={1}>
+        <Grid item xs={12} align="center">
+          <Typography variant='h4' component='h4'>
+            Code : {roomCode} 
+          </Typography>
+        </Grid>
+        <Grid item xs={12} align="center">
+        <Typography variant='h6' component='h6'>
+          Votes : {voteToSkip !== undefined ? voteToSkip.toString() : ''} 
+          </Typography>
+        </Grid>
+        <Grid item xs={12} align="center">
+          <Typography variant='h6' component='h6'>
+          CanPause : {guestCanPause !== undefined ? guestCanPause.toString() : ''}
+          </Typography>
+        </Grid>
+        <Grid item xs={12} align="center">
+          <Typography variant='h6' component='h6'>
+            Host : {isHost !== undefined ? isHost.toString() : ''}
+          </Typography>
+        </Grid>
+        {isHost ? renderSettingsButton() : null }
+        <Grid item xs={12} align="center">
+          <Button variant='contained' color = 'secondary' onClick={leaveButtonPressed}>
+            Leave Room
+          </Button>
+
+        </Grid>
+      </Grid>
+    );
 };
 
 export default Room;
