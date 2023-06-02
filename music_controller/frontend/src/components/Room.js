@@ -4,6 +4,7 @@ import {
   Grid,Button,Typography
 } from '@mui/material'
 import CreateRoomPage from './CreateRoomPage';
+import MediaPlayer from './MediaPlayer';
 
 
 const Room = ({clearRoomCode}) => {
@@ -14,6 +15,8 @@ const Room = ({clearRoomCode}) => {
   const [guestCanPause, setguestCanPause] = React.useState(true);
   const [isHost, setisHost] = React.useState(false);
   const [showSettings, setshowSettings] = React.useState(false);
+  const [spotifyAuthenticated, setspotifyAuthenticated] = React.useState(false);
+  const [song, setsong] = React.useState({})
   
 
   const getRoomDetails = () => {
@@ -29,13 +32,39 @@ const Room = ({clearRoomCode}) => {
         setvoteToSkip(data.vote_to_skip);
         setguestCanPause(data.guest_can_pause);
         setisHost(data.is_host);
+
+        if (data.is_host) {
+          console.log("HI")
+          authenticatSpotify()
+        }
+
       });
       
   };
 
   React.useEffect(() => {
     getRoomDetails();
+    const interval = setInterval(() => {
+      getCurrentSong();
+    }, 1000);
+  
+    return () => {
+      clearInterval(interval);
+    };
   }, []);
+
+
+  const authenticatSpotify = () => {
+    fetch('/spotify/is-authenticated').then((response) => response.json())
+    .then((data) => {setspotifyAuthenticated(data.status)
+      if (!data.status){
+        fetch('/spotify/get-auth-url').then((response) => response.json())
+        .then((data) => {
+          window.location.replace(data.url);
+        })
+      }
+  })
+  }
 
   const leaveButtonPressed = () => {
     const cookieHeader = document.cookie
@@ -75,6 +104,25 @@ const Room = ({clearRoomCode}) => {
     )
   }
 
+
+  const getCurrentSong = () => {
+    fetch('/spotify/current-song')
+    .then((response) => {
+      if (!response.ok) {
+        return {};
+      }
+      else {
+        return response.json();
+      }
+    })
+    .then((data) => {
+      setsong(data)
+    })
+  }
+
+
+
+
   const renderSettings = () => {
     
     return (
@@ -111,7 +159,32 @@ const Room = ({clearRoomCode}) => {
             Code : {roomCode} 
           </Typography>
         </Grid>
+        < Grid item xs={12} align="center">
+        {song && Object.keys(song).length !== 0 ? (
+        <Typography variant="h6">
+          Song: {song.title} - {song.artist}
+          <MediaPlayer song={song} />
+        </Typography>
+      ) : (
+        <Typography variant="h6">Loading song...</Typography>
+      )}
+        </Grid>
+        
+        {isHost ? renderSettingsButton() : null }
         <Grid item xs={12} align="center">
+          <Button variant='contained' color = 'secondary' onClick={leaveButtonPressed}>
+            Leave Room
+          </Button>
+
+        </Grid>
+      </Grid>
+    );
+};
+
+export default Room;
+
+
+{/* <Grid item xs={12} align="center">
         <Typography variant='h6' component='h6'>
           Votes : {voteToSkip !== undefined ? voteToSkip.toString() : ''} 
           </Typography>
@@ -125,16 +198,4 @@ const Room = ({clearRoomCode}) => {
           <Typography variant='h6' component='h6'>
             Host : {isHost !== undefined ? isHost.toString() : ''}
           </Typography>
-        </Grid>
-        {isHost ? renderSettingsButton() : null }
-        <Grid item xs={12} align="center">
-          <Button variant='contained' color = 'secondary' onClick={leaveButtonPressed}>
-            Leave Room
-          </Button>
-
-        </Grid>
-      </Grid>
-    );
-};
-
-export default Room;
+        </Grid> */}

@@ -1,10 +1,12 @@
 from django.urls import path, include
 from .views import index
 
+
+app_name = 'frontend'
 urlpatterns = [
-    path('', index),
-    path('home', index),
-    path('join', index),
-    path('create', index),
-    path('room/<uuid:roomCode>', index)
+    path('', index, name=''),
+    path('home', index, name='home'),
+    path('join', index, name='join'),
+    path('create', index, name='create'),
+    path('room/<uuid:roomCode>', index, name='room_code')
 ]
